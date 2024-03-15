@@ -47,17 +47,17 @@ fn generate_int(n: i64, span: Span) -> TokenStream {
 
 fn generate_escape(builder: TokenStream, expression: TokenStream, span: Span) -> TokenStream {
     quote_spanned!(span=>
-            (|builder, value| {
-                #[allow(clippy::all)]
-                
-                use ::bitcoin::blockdata::script::Builder;
-                fn push(builder: Builder, value: impl pushable::Pushable) -> Builder {
-                    value.bitcoin_script_push(builder)
-                }
-                push(builder, value)
-            })(
-                #builder,
-                #expression
-            )
+        (|builder, value| {
+            #[allow(clippy::all)]
+
+            use ::bitcoin::blockdata::script::Builder;
+            fn push(builder: Builder, value: impl pushable::Pushable) -> Builder {
+                value.bitcoin_script_push(builder)
+            }
+            push(builder, value)
+        })(
+            #builder,
+            #expression
         )
+    )
 }

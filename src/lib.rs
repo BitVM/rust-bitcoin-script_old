@@ -95,11 +95,11 @@
 //!
 //! Rust expressions of the following types are supported:
 //!
-//! - `i64`, `i32`, `u32`, 
+//! - `i64`, `i32`, `u32`,
 //! - `Vec<u8>`
 //! - [`bitcoin::PublicKey`](https://docs.rs/bitcoin/latest/bitcoin/struct.PublicKey.html)
 //! - [`bitcoin::ScriptBuf`](https://docs.rs/bitcoin/latest/bitcoin/blockdata/script/struct.ScriptBuf.html)
-//! - And Vec<> variants of all the above types 
+//! - And Vec<> variants of all the above types
 //!
 //!
 //! ```rust
@@ -138,10 +138,10 @@ pub fn define_pushable(_: TokenStream) -> TokenStream {
     quote!(
         pub mod pushable {
 
-            use std::convert::TryFrom;
             use bitcoin::blockdata::opcodes::Opcode;
             use bitcoin::blockdata::script::Builder;
             use bitcoin::blockdata::script::PushBytesBuf;
+            use std::convert::TryFrom;
             pub trait Pushable {
                 fn bitcoin_script_push(self, builder: Builder) -> Builder;
             }

@@ -63,18 +63,16 @@ pub fn parse(tokens: TokenStream) -> Vec<(Syntax, Span)> {
             // identifier, look up opcode
             (Ident(_), _) => {
                 match OPCODES.get(&token_str) {
-                    Some(opcode) => {
-                        (Syntax::Opcode(*opcode), token.span())
-                    },
+                    Some(opcode) => (Syntax::Opcode(*opcode), token.span()),
                     // Not a native Bitcoin opcode
                     // Allow functions without arguments to be identified by just their name
                     None => {
                         let mut pseudo_stream = TokenStream::from(token.clone());
                         pseudo_stream.extend(TokenStream::from_str("()"));
                         (Syntax::Escape(pseudo_stream), token.span())
-                    },
+                    }
                 }
-            },
+            }
 
             (Group(inner), _) => {
                 let escape = TokenStream::from(inner.stream().clone());
@@ -152,7 +150,6 @@ where
 
     (Syntax::Escape(escape), span)
 }
-
 
 fn parse_data(token: TokenTree) -> (Syntax, Span) {
     if token.to_string().starts_with("0x") {
