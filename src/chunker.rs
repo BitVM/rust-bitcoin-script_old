@@ -12,12 +12,12 @@ use crate::{
     StackAnalyzer,
 };
 
-#[derive(Debug, Clone)]
-struct ChunkStats {
-    stack_input_size: usize,
-    stack_output_size: usize,
-    altstack_input_size: usize,
-    altstack_output_size: usize,
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChunkStats {
+    pub stack_input_size: usize,
+    pub stack_output_size: usize,
+    pub altstack_input_size: usize,
+    pub altstack_output_size: usize,
 }
 
 pub struct UndoInfo {
@@ -58,7 +58,7 @@ impl UndoInfo {
 pub struct Chunk {
     scripts: Vec<Box<StructuredScript>>,
     size: usize,
-    stats: Option<ChunkStats>,
+    pub stats: Option<ChunkStats>,
 }
 
 impl Chunk {
@@ -125,9 +125,9 @@ impl Chunker {
         chunks
     }
 
-    fn stack_analyze(&self, chunk: &mut Vec<Box<StructuredScript>>) -> StackStatus {
+    fn stack_analyze(&self, scripts: &mut Vec<Box<StructuredScript>>) -> StackStatus {
         let mut stack_analyzer = StackAnalyzer::new();
-        stack_analyzer.analyze_blocks(chunk)
+        stack_analyzer.analyze_blocks(scripts)
     }
 
     pub fn undo(&mut self, mut undo_info: UndoInfo) -> (Vec<Box<StructuredScript>>, usize) {
@@ -292,11 +292,23 @@ impl Chunker {
     pub fn find_chunks(&mut self) -> Vec<usize> {
         let mut result = vec![];
         while !self.call_stack.is_empty() {
-            let chunk = self.find_next_chunk();
+            let mut chunk = self.find_next_chunk();
             if chunk.size == 0 {
                 panic!("Unable to fit next call_stack entries into a chunk. Borders until this point: {:?}", result);
             }
             result.push(chunk.size);
+            let status = self.stack_analyze(&mut chunk.scripts);
+            let stack_input_size = status.deepest_stack_accessed.unsigned_abs() as usize;
+            let stack_output_size = (status.stack_changed - status.deepest_stack_accessed) as usize;
+            let altstack_input_size = status.deepest_altstack_accessed.unsigned_abs() as usize;
+            let altstack_output_size =
+                (status.altstack_changed - status.deepest_altstack_accessed) as usize;
+            chunk.stats = Some(ChunkStats {
+                stack_input_size,
+                stack_output_size,
+                altstack_input_size,
+                altstack_output_size,
+            });
             self.chunks.push(chunk);
         }
         result

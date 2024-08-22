@@ -46,11 +46,10 @@ impl StackAnalyzer {
         }
     }
 
-    pub fn analyze_blocks(&mut self, blocks: &mut Vec<Box<StructuredScript>>) -> StackStatus {
+    pub fn analyze_blocks(&mut self, scripts: &mut Vec<Box<StructuredScript>>) -> StackStatus {
         // println!("===============================");
-        for block in blocks {
-            // Maybe remove this clone?
-            self.handle_sub_script(block.get_stack());
+        for script in scripts {
+            script.get_stack(self);
         }
         self.get_status()
     }
@@ -63,7 +62,8 @@ impl StackAnalyzer {
                         .script_map
                         .get_mut(id)
                         .expect("Missing entry for a called script");
-                    self.handle_sub_script(called_script.get_stack());
+                        let stack_status = called_script.get_stack(self);
+                        self.handle_sub_script(stack_status);
                 }
                 Block::Script(block_script) => {
                     for instruct in block_script.instructions() {

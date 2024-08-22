@@ -340,11 +340,10 @@ impl StructuredScript {
         }
     }
 
-    pub fn get_stack(&mut self) -> StackStatus {
+    pub fn get_stack(&mut self, analyzer: &mut StackAnalyzer) -> StackStatus {
         match &self.stack_hint {
             Some(x) => x.clone(),
             None => {
-                let mut analyzer = StackAnalyzer::new();
                 let stack_status = analyzer.analyze(self);
                 self.stack_hint = Some(stack_status.clone());
                 stack_status

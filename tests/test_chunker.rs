@@ -1,5 +1,5 @@
 use bitcoin::ScriptBuf;
-use bitcoin_script::{script, Chunker};
+use bitcoin_script::{chunker::ChunkStats, script, Chunker};
 
 #[test]
 fn test_chunker_simple() {
@@ -70,6 +70,15 @@ fn test_chunker_ifs_2() {
 
     let mut chunker = Chunker::new(script, 10, 5);
     let chunk_borders = chunker.find_chunks();
+    //assert_eq!(
+    //    chunker.chunks[0].clone().stats.unwrap(),
+    //    ChunkStats {
+    //        stack_input_size: 6,
+    //        stack_output_size: 1,
+    //        altstack_input_size: 0,
+    //        altstack_output_size: 0
+    //    }
+    //);
 
     assert_eq!(chunk_borders, vec![7, 5, 7, 5]);
 }
