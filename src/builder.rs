@@ -351,11 +351,12 @@ impl StructuredScript {
         }
     }
 
-    pub fn add_stack_hint(&mut self, access: i32, changed: i32) {
+    pub fn add_stack_hint(mut self, access: i32, changed: i32) -> Self {
         self.stack_hint = Some(StackAnalyzer::plain_stack_status(access, changed));
+        self
     }
 
-    pub fn stack_hint(&self) -> Option<StackStatus> {
+    pub fn stack_hint(&self) -> Option<StackStatus>{
         self.stack_hint.clone()
     }
 
