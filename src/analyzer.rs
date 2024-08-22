@@ -191,7 +191,7 @@ impl StackAnalyzer {
                     self.stack_change(Self::plain_stack_status(-((x + 1 + 1) as i32), 0));
                 }
                 None => {
-                    panic!("need to be handled manually for op_pick")
+                    panic!("need to be handled manually for op_pick in {:?}", self.debug_script.debug_info(self.debug_position))
                 }
             },
             OP_ROLL => match self.last_constant {
@@ -200,7 +200,7 @@ impl StackAnalyzer {
                     // for [x2, x1, x0, 2, OP_PICK]
                 }
                 None => {
-                    panic!("need to be handled manually for op_roll")
+                    panic!("need to be handled manually for op_roll in {:?}", self.debug_script.debug_info(self.debug_position))
                 }
             },
             _ => {
