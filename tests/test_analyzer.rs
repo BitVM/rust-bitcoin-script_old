@@ -5,15 +5,31 @@ use bitcoin_script::StackAnalyzer;
 
 #[test]
 fn test_plain() {
-    let mut script = script! (
+    let script = script! (
         OP_ADD
         OP_ADD
-        OP_ADD
+        OP_1
     );
     let mut analyzer = StackAnalyzer::new();
-    let status = script.get_stack(&mut analyzer);
-    assert_eq!(status.deepest_stack_accessed, -4);
-    assert_eq!(status.stack_changed, -3);
+    let status = analyzer.analyze(&script);
+    assert_eq!(status.deepest_stack_accessed, -3);
+    assert_eq!(status.stack_changed, -1);
+}
+
+#[test]
+fn test_two_scripts() {
+    let script = script! {
+        { script! { 
+            OP_ADD
+        }}
+        { script! { 
+            OP_ADD
+        }}
+    };
+    let mut analyzer = StackAnalyzer::new();
+    let status = analyzer.analyze(&script);
+    assert_eq!(status.deepest_stack_accessed, -3);
+    assert_eq!(status.stack_changed, -2);
 }
 
 fn inner_fn1() -> Script {

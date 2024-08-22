@@ -1,10 +1,11 @@
 use crate::builder::{Block, StructuredScript};
+use crate::chunker::Chunk;
 use bitcoin::blockdata::opcodes::Opcode;
 use bitcoin::blockdata::script::{read_scriptint, Instruction};
 use bitcoin::opcodes::all::*;
 use bitcoin::script::PushBytes;
 use std::borrow::BorrowMut;
-use std::cmp::min;
+use std::cmp::{max, min};
 use std::panic;
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -49,21 +50,31 @@ impl StackAnalyzer {
     pub fn analyze_blocks(&mut self, scripts: &mut Vec<Box<StructuredScript>>) -> StackStatus {
         // println!("===============================");
         for script in scripts {
-            script.get_stack(self);
+            match script.stack_hint() {
+                Some(stack_hint) => self.stack_change(stack_hint),
+                None => self.merge_script(script),
+            };
         }
         self.get_status()
     }
 
-    pub fn analyze(&mut self, builder: &mut StructuredScript) -> StackStatus {
-        for block in builder.blocks.iter_mut() {
+    pub fn analyze(&mut self, builder: &StructuredScript) -> StackStatus {
+        self.merge_script(builder);
+        self.get_status()
+    }
+
+    pub fn merge_script(&mut self, builder: &StructuredScript) {
+        for block in builder.blocks.iter() {
             match block {
                 Block::Call(id) => {
                     let called_script = builder
                         .script_map
-                        .get_mut(id)
+                        .get(id)
                         .expect("Missing entry for a called script");
-                        let stack_status = called_script.get_stack(self);
-                        self.handle_sub_script(stack_status);
+                    match called_script.stack_hint() {
+                        Some(stack_hint) => self.stack_change(stack_hint),
+                        None => self.merge_script(called_script),
+                    };
                 }
                 Block::Script(block_script) => {
                     for instruct in block_script.instructions() {
@@ -84,7 +95,6 @@ impl StackAnalyzer {
                 }
             }
         }
-        self.stack_status.clone()
     }
 
     pub fn handle_push_slice(&mut self, bytes: &PushBytes) {
@@ -217,16 +227,32 @@ impl StackAnalyzer {
                 status = stack_status.borrow_mut();
             }
         }
+        //println!("Script1: {:?}", status);
+        //println!("Script2: {:?}", stack_status);
         let i = status.deepest_stack_accessed.borrow_mut();
         let j = status.stack_changed.borrow_mut();
         let x = status.deepest_altstack_accessed.borrow_mut();
         let y = status.altstack_changed.borrow_mut();
 
-        *i = min(*i, (*j) + stack_status.deepest_stack_accessed);
+        // The second script's deepest stack access is reduced if there are still elements left on
+        // the stack from script 1.
+        let elements_on_intermediate_stack = (*j) - (*i);
+        let elements_on_intermediate_altstack = (*y) - (*x);
+        assert!(elements_on_intermediate_stack >= 0, "Script1 changes the stack by more items than it accesses. This means there is a bug in the stack_change() logic.");
+        assert!(elements_on_intermediate_stack >= 0, "Script1 changes the altstack by more items than it accesses. This means there is a bug in the stack_change() logic.");
+
+        *i += min(
+            0,
+            stack_status.deepest_stack_accessed + elements_on_intermediate_stack,
+        );
         *j += stack_status.stack_changed;
 
-        *x = min(*x, (*y) + stack_status.deepest_altstack_accessed);
+        *x += min(
+            0,
+            stack_status.deepest_altstack_accessed + elements_on_intermediate_altstack,
+        );
         *y += stack_status.altstack_changed;
+        //println!("Updated: {:?}", status);
     }
 
     /// the first return is deepest access to current stack

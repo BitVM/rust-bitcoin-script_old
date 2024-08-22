@@ -320,7 +320,7 @@ impl StructuredScript {
                     .next()
                     .expect("Less chunk sizes than there are chunks"),
             );
-            for builder in chunk.scripts() {
+            for builder in chunk.scripts {
                 let mut cache = HashMap::new();
                 builder.compile_to_bytes(&mut script, &mut cache);
             }
@@ -353,6 +353,10 @@ impl StructuredScript {
 
     pub fn add_stack_hint(&mut self, access: i32, changed: i32) {
         self.stack_hint = Some(StackAnalyzer::plain_stack_status(access, changed));
+    }
+
+    pub fn stack_hint(&self) -> Option<StackStatus> {
+        self.stack_hint.clone()
     }
 
     pub fn push_int(self, data: i64) -> StructuredScript {
