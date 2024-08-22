@@ -70,8 +70,7 @@ impl Chunk {
         }
     }
 
-    fn analyze_stack(&mut self) {
-        let mut analyzer = StackAnalyzer::new();
+    fn analyze_stack(&mut self, analyzer: &mut StackAnalyzer) {
         let status = analyzer.analyze_blocks(&mut self.scripts);
         let stack_input_size = status.deepest_stack_accessed.unsigned_abs() as usize;
         let stack_output_size = (status.stack_changed - status.deepest_stack_accessed) as usize;
@@ -274,6 +273,7 @@ impl Chunker {
     }
 
     pub fn find_chunks(&mut self) -> Vec<usize> {
+        let mut analyzer = StackAnalyzer::new();
         let mut result = vec![];
         while !self.call_stack.is_empty() {
             let mut chunk = self.find_next_chunk();
@@ -281,7 +281,8 @@ impl Chunker {
                 panic!("Unable to fit next call_stack entries into a chunk. Borders until this point: {:?}", result);
             }
             result.push(chunk.size);
-            chunk.analyze_stack();
+            chunk.analyze_stack(&mut analyzer);
+            analyzer.reset();
             self.chunks.push(chunk);
         }
         result

@@ -53,6 +53,13 @@ impl StackAnalyzer {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.debug_script = StructuredScript::new("");
+        self.debug_position = 0;
+        self.if_stack= vec![];
+        self.stack_status = StackStatus::default();
+    }
+
     pub fn analyze_blocks(&mut self, scripts: &mut Vec<Box<StructuredScript>>) -> StackStatus {
         for script in scripts {
             self.debug_script = *script.clone();
@@ -113,6 +120,7 @@ impl StackAnalyzer {
         if let Ok(x) = read_scriptint(bytes.as_bytes()) {
             // if i64(data) < 1000, last_constant is true
             if (0..=1000).contains(&x) {
+                println!("Found a constant: {:?}", x);
                 self.last_constant = Some(x);
             } else {
                 self.last_constant = None;
