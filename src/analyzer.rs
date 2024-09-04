@@ -114,9 +114,7 @@ impl StackAnalyzer {
     }
 
     pub fn handle_push_slice(&mut self, bytes: &PushBytes) {
-        let mut debug_find_len = ScriptBuf::new();
-        debug_find_len.push_instruction(Instruction::PushBytes(bytes));
-        self.debug_position += debug_find_len.len();
+        self.debug_position += bytes.len() + 1;
         if let Ok(x) = read_scriptint(bytes.as_bytes()) {
             // if i64(data) < 1000, last_constant is true
             if (0..=1000).contains(&x) {
