@@ -198,7 +198,7 @@ impl StackAnalyzer {
                     self.stack_change(Self::plain_stack_status(-((x + 1 + 1) as i32), 0));
                 }
                 None => {
-                    panic!("need to be handled manually for op_pick in {:?}", self.debug_script.debug_info(self.debug_position))
+                    panic!("need to be handled manually for op_pick in {:?}, last_constant: {:?}", self.debug_script.debug_info(self.debug_position), self.last_constant)
                 }
             },
             OP_ROLL => match self.last_constant {
@@ -207,7 +207,7 @@ impl StackAnalyzer {
                     // for [x2, x1, x0, 2, OP_PICK]
                 }
                 None => {
-                    panic!("need to be handled manually for op_roll in {:?}", self.debug_script.debug_info(self.debug_position))
+                    panic!("need to be handled manually for op_roll in {:?}. last_constant: {:?}", self.debug_script.debug_info(self.debug_position), self.last_constant)
                 }
             },
             _ => {
@@ -224,11 +224,6 @@ impl StackAnalyzer {
             | OP_PUSHNUM_16 => self.last_constant = Some((opcode.to_u8() - 0x50) as i64),
             _ => self.last_constant = None,
         }
-    }
-
-    pub fn handle_sub_script(&mut self, stack_status: StackStatus) {
-        self.last_constant = None;
-        self.stack_change(stack_status);
     }
 
     pub fn get_status(&self) -> StackStatus {
