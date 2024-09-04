@@ -22,6 +22,7 @@ fn test_chunker_simple() {
 
     assert_eq!(chunk_borders, vec![2, 2, 2, 2]);
 }
+
 #[test]
 fn test_chunker_ifs_1() {
     let sub_script = script! {
@@ -107,4 +108,24 @@ fn test_compile_to_chunks() {
     let compiled_chunk_script = ScriptBuf::from_bytes(compiled_chunk_script);
 
     assert_eq!(compiled_chunk_script, compiled_total_script);
+}
+
+#[test]
+fn test_chunker_ignores_stack_hint_script() {
+    let unsplittable_script = script! {
+        { script! {OP_ADD OP_ADD} }
+        { script! {OP_ADD OP_ADD} }
+    }.add_stack_hint(0, 0);    //Actual stack change doesn't matter in this test.
+
+    let script = script! {
+        OP_1
+        OP_1
+        { unsplittable_script.clone() }
+    };
+
+    let mut chunker = Chunker::new(script, 4, 4);
+    let chunk_borders = chunker.find_chunks();
+    println!("Chunker: {:?}", chunker);
+
+    assert_eq!(chunk_borders, vec![2, 4]);
 }

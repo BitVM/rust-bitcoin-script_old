@@ -80,6 +80,10 @@ impl StructuredScript {
         self.blocks.len() == 1 && matches!(self.blocks[0], Block::Script(_))
     }
 
+    pub fn has_stack_hint(&self) -> bool {
+        self.stack_hint != None
+    }
+
     pub fn num_unclosed_ifs(&self) -> i32 {
         self.num_unclosed_ifs
     }

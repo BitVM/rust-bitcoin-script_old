@@ -126,7 +126,7 @@ impl Chunker {
                 Some(builder) => builder,
                 None => panic!("Not all OP_IF or OP_NOTIF are closed in the chunk but undoing/removing scripts from the end of the chunk violates the set tolerance. Number of unmatched OP_IF/OP_NOTIF: {}", undo_info.num_unclosed_ifs), // the last block in the call stack
             };
-            if builder.contains_flow_op() {
+            if builder.contains_flow_op() && !builder.has_stack_hint() {
                 if builder.is_script_buf() && builder.len() == 1 {
                     undo_info.num_unclosed_ifs -= builder.num_unclosed_ifs();
                     removed_len += builder.len();
@@ -173,8 +173,9 @@ impl Chunker {
                     }
                 }
             } else {
-                // No OP_IF, OP_NOTIF or OP_ENDIF in that structured script so we will not include
-                // it in the chunk.
+                // No OP_IF, OP_NOTIF or OP_ENDIF in that structured script (or it has a manually
+                // set stack hint) so we will not include it in the chunk.
+                undo_info.num_unclosed_ifs -= builder.num_unclosed_ifs();
                 removed_len += builder.len();
                 removed_scripts.push(builder);
             }
@@ -233,7 +234,9 @@ impl Chunker {
                 // Even if we have an acceptable solution we check if there is a better one in next depth calls
                 // Chunk inside a call of the current builder.
                 // Add all its calls to the call_stack.
-                if builder.is_script_buf() {
+                
+                // Don't split up script_bufs and scripts that have a (manually set) stack hint.
+                if builder.is_script_buf() || builder.has_stack_hint() {
                     self.call_stack.push(Box::new(builder));
                     break;
                 }
