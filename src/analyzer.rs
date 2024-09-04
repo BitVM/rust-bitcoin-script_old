@@ -120,7 +120,6 @@ impl StackAnalyzer {
         if let Ok(x) = read_scriptint(bytes.as_bytes()) {
             // if i64(data) < 1000, last_constant is true
             if (0..=1000).contains(&x) {
-                println!("Found a constant: {:?}", x);
                 self.last_constant = Some(x);
             } else {
                 self.last_constant = None;
