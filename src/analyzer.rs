@@ -156,6 +156,9 @@ impl StackAnalyzer {
                 self.stack_change(Self::opcode_stack_table(&opcode));
                 self.if_stack.push(IfStackEle::IfFlow(Default::default()));
             }
+            OP_RESERVED => {
+                panic!("found DEBUG in {:?}", self.debug_script.debug_info(self.debug_position))
+            }
             OP_ELSE => match self.if_stack.pop().unwrap() {
                 IfStackEle::IfFlow(i) => {
                     self.if_stack
@@ -198,7 +201,7 @@ impl StackAnalyzer {
                     self.stack_change(Self::plain_stack_status(-((x + 1 + 1) as i32), 0));
                 }
                 None => {
-                    panic!("need to be handled manually for op_pick in {:?}, last_constant: {:?}", self.debug_script.debug_info(self.debug_position), self.last_constant)
+                    panic!("need to be handled manually for op_pick in {:?}", self.debug_script.debug_info(self.debug_position))
                 }
             },
             OP_ROLL => match self.last_constant {
@@ -207,7 +210,7 @@ impl StackAnalyzer {
                     // for [x2, x1, x0, 2, OP_PICK]
                 }
                 None => {
-                    panic!("need to be handled manually for op_roll in {:?}. last_constant: {:?}", self.debug_script.debug_info(self.debug_position), self.last_constant)
+                    panic!("need to be handled manually for op_roll in {:?}", self.debug_script.debug_info(self.debug_position))
                 }
             },
             _ => {
@@ -222,6 +225,7 @@ impl StackAnalyzer {
             | OP_PUSHNUM_6 | OP_PUSHNUM_7 | OP_PUSHNUM_8 | OP_PUSHNUM_9 | OP_PUSHNUM_10
             | OP_PUSHNUM_11 | OP_PUSHNUM_12 | OP_PUSHNUM_13 | OP_PUSHNUM_14 | OP_PUSHNUM_15
             | OP_PUSHNUM_16 => self.last_constant = Some((opcode.to_u8() - 0x50) as i64),
+            OP_PUSHBYTES_0 => self.last_constant = Some(0),
             _ => self.last_constant = None,
         }
     }
