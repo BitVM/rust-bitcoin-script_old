@@ -218,7 +218,6 @@ impl StackAnalyzer {
         self.debug_position += 1;
 
         // handle last constant, used by op_roll and op_pick
-        println!("Last opcode: {}", opcode);
         match opcode {
             OP_PUSHNUM_1 | OP_PUSHNUM_2 | OP_PUSHNUM_3 | OP_PUSHNUM_4 | OP_PUSHNUM_5
             | OP_PUSHNUM_6 | OP_PUSHNUM_7 | OP_PUSHNUM_8 | OP_PUSHNUM_9 | OP_PUSHNUM_10
