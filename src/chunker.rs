@@ -151,12 +151,12 @@ impl Chunker {
                                         | Instruction::Op(OP_ENDIF)
                                         | Instruction::Op(OP_NOTIF) => {
                                             undo_info.call_stack.push(Box::new(
-                                                StructuredScript::new("")
+                                                StructuredScript::new(&builder.debug_identifier)
                                                     .push_script(std::mem::take(&mut tmp_script)),
                                             ));
                                             tmp_script.push_instruction(instruction);
                                             undo_info.call_stack.push(Box::new(
-                                                StructuredScript::new("")
+                                                StructuredScript::new(&builder.debug_identifier)
                                                     .push_script(std::mem::take(&mut tmp_script)),
                                             ));
                                         }
@@ -165,7 +165,7 @@ impl Chunker {
                                 }
                                 if !tmp_script.is_empty() {
                                     undo_info.call_stack.push(Box::new(
-                                        StructuredScript::new("").push_script(tmp_script),
+                                        StructuredScript::new(&builder.debug_identifier).push_script(tmp_script),
                                     ));
                                 }
                             }
@@ -250,7 +250,7 @@ impl Chunker {
                         }
                         Block::Script(script_buf) => {
                             self.call_stack.push(Box::new(
-                                StructuredScript::new("").push_script(script_buf.clone()),
+                                StructuredScript::new(&builder.debug_identifier).push_script(script_buf.clone()),
                             ));
                         }
                     }

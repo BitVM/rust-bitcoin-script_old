@@ -155,7 +155,7 @@ impl StackAnalyzer {
                 self.if_stack.push(IfStackEle::IfFlow(Default::default()));
             }
             OP_RESERVED => {
-                panic!("found DEBUG in {:?}", self.debug_script.debug_info(self.debug_position))
+                panic!("found DEBUG in {:?}\n entire builder: {:?}", self.debug_script.debug_info(self.debug_position), self.debug_script)
             }
             OP_ELSE => match self.if_stack.pop().unwrap() {
                 IfStackEle::IfFlow(i) => {
