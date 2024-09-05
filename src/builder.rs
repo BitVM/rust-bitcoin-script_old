@@ -7,6 +7,7 @@ use std::cmp::min;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::{fs::File, io::Write};
 
 use crate::analyzer::{StackAnalyzer, StackStatus};
 use crate::chunker::Chunker;
@@ -73,7 +74,9 @@ impl StructuredScript {
     }
 
     pub fn contains_flow_op(&self) -> bool {
-        !(self.unclosed_if_positions.is_empty() && self.extra_endif_positions().is_empty() && self.max_if_interval == (0,0))
+        !(self.unclosed_if_positions.is_empty()
+            && self.extra_endif_positions().is_empty()
+            && self.max_if_interval == (0, 0))
     }
 
     pub fn is_script_buf(&self) -> bool {
@@ -103,15 +106,14 @@ impl StructuredScript {
                         return called_script.debug_info(position - current_pos);
                     }
                     current_pos += called_script.len();
-                    }
+                }
                 Block::Script(script_buf) => {
                     if position >= current_pos && position < current_pos + script_buf.len() {
-                        return self.debug_identifier.clone()
+                        return self.debug_identifier.clone();
                     }
                     current_pos += script_buf.len();
                 }
             }
-
         }
         panic!("No blocks in the structured script");
     }
@@ -140,15 +142,15 @@ impl StructuredScript {
             self.max_if_interval = (start, end);
         }
     }
-    
+
     pub fn unclosed_if_positions(&self) -> Vec<usize> {
         self.unclosed_if_positions.clone()
     }
-    
+
     pub fn extra_endif_positions(&self) -> Vec<usize> {
         self.extra_endif_positions.clone()
     }
-    
+
     pub fn max_op_if_interval(&self) -> (usize, usize) {
         self.max_if_interval
     }
@@ -195,7 +197,9 @@ impl StructuredScript {
                     self.num_unclosed_ifs -= 1;
                     let closed_if = self.unclosed_if_positions.pop();
                     match closed_if {
-                        Some(closed_if_pos) => self.update_max_interval(closed_if_pos, self.size + pos),
+                        Some(closed_if_pos) => {
+                            self.update_max_interval(closed_if_pos, self.size + pos)
+                        }
                         None => self.extra_endif_positions.push(self.size + pos),
                     }
                 }
@@ -217,14 +221,25 @@ impl StructuredScript {
     pub fn push_env_script(mut self, mut data: StructuredScript) -> StructuredScript {
         data.debug_identifier = format!("{} {}", self.debug_identifier, data.debug_identifier);
         // Try closing ifs
-        let num_closable_ifs = min(self.unclosed_if_positions.len(), data.extra_endif_positions.len());
+        let num_closable_ifs = min(
+            self.unclosed_if_positions.len(),
+            data.extra_endif_positions.len(),
+        );
         let mut endif_positions_iter = data.extra_endif_positions.iter().rev();
         for _ in 0..num_closable_ifs {
-            let if_start = self.unclosed_if_positions.pop().unwrap_or_else(|| unreachable!());
-            let if_end = endif_positions_iter.next().unwrap_or_else(|| unreachable!());
+            let if_start = self
+                .unclosed_if_positions
+                .pop()
+                .unwrap_or_else(|| unreachable!());
+            let if_end = endif_positions_iter
+                .next()
+                .unwrap_or_else(|| unreachable!());
             self.update_max_interval(if_start, *if_end + self.size);
         }
-        self.update_max_interval(self.size + data.max_if_interval.0, self.size + data.max_if_interval.1);
+        self.update_max_interval(
+            self.size + data.max_if_interval.0,
+            self.size + data.max_if_interval.1,
+        );
         self.unclosed_if_positions
             .extend(data.unclosed_if_positions.iter().map(|x| x + self.size));
         self.extra_endif_positions
@@ -316,6 +331,22 @@ impl StructuredScript {
     ) -> (Vec<usize>, Vec<ScriptBuf>) {
         let mut chunker = Chunker::new(self, target_chunk_size, tolerance);
         let chunk_sizes = chunker.find_chunks();
+
+        // Write the analyzed chunk stats (stack change) to a file
+        let mut stats_file =
+            File::create("analyzed_chunk_stats.txt").expect("Unable to create stats file");
+        let chunk_stats = chunker.chunks.iter().map(|chunk| chunk.stats.clone());
+        for entry in chunk_stats {
+            writeln!(
+                stats_file,
+                "{:?}",
+                match entry {
+                    None => panic!("Not analyzed chunk"),
+                    Some(stat) => stat,
+                }
+            )
+            .expect("Unable to write to stats file");
+        }
         let mut chunk_sizes_iter = chunk_sizes.iter();
         let mut scripts = vec![];
         for chunk in chunker.chunks {
@@ -360,7 +391,7 @@ impl StructuredScript {
         self
     }
 
-    pub fn stack_hint(&self) -> Option<StackStatus>{
+    pub fn stack_hint(&self) -> Option<StackStatus> {
         self.stack_hint.clone()
     }
 
@@ -406,7 +437,6 @@ impl StructuredScript {
     }
 
     pub fn push_expression<T: Pushable>(self, expression: T) -> StructuredScript {
-        
         expression.bitcoin_script_push(self)
     }
 }
