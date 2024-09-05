@@ -342,7 +342,7 @@ impl StructuredScript {
                 "{:?}",
                 match entry {
                     None => panic!("Not analyzed chunk"),
-                    Some(stat) => stat,
+                    Some(stat) => stat.altstack_input_size + stat.stack_input_size,
                 }
             )
             .expect("Unable to write to stats file");
