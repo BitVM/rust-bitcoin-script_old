@@ -327,9 +327,9 @@ impl StructuredScript {
     pub fn compile_to_chunks(
         self,
         target_chunk_size: usize,
-        tolerance: usize,
+        stack_limit: usize,
     ) -> (Vec<usize>, Vec<ScriptBuf>) {
-        let mut chunker = Chunker::new(self, target_chunk_size, tolerance);
+        let mut chunker = Chunker::new(self, target_chunk_size, stack_limit);
         let chunk_sizes = chunker.find_chunks();
 
         // Write the analyzed chunk stats (stack change) to a file
@@ -340,10 +340,7 @@ impl StructuredScript {
             writeln!(
                 stats_file,
                 "{:?}",
-                match entry {
-                    None => panic!("Not analyzed chunk"),
-                    Some(stat) => stat.altstack_input_size + stat.stack_input_size,
-                }
+                entry.stack_input_size
             )
             .expect("Unable to write to stats file");
         }
@@ -364,23 +361,21 @@ impl StructuredScript {
         (chunk_sizes, scripts)
     }
 
-    pub fn analyze_stack(mut self) -> Self {
+    pub fn analyze_stack(mut self) -> StackStatus {
         match self.stack_hint {
-            Some(_) => self,
+            Some(hint) => hint,
             None => {
                 let mut analyzer = StackAnalyzer::new();
-                analyzer.analyze(&mut self);
-                self
+                analyzer.analyze_status(&mut self)
             }
         }
     }
 
-    pub fn get_stack(&mut self, analyzer: &mut StackAnalyzer) -> StackStatus {
+    pub fn get_stack(&self, analyzer: &mut StackAnalyzer) -> StackStatus {
         match &self.stack_hint {
             Some(x) => x.clone(),
             None => {
-                let stack_status = analyzer.analyze(self);
-                self.stack_hint = Some(stack_status.clone());
+                let stack_status = analyzer.analyze_status(self);
                 stack_status
             }
         }

@@ -4,8 +4,8 @@ use bitcoin_script::{chunker::ChunkStats, script, Chunker};
 #[test]
 fn test_chunker_simple() {
     let sub_script = script! {
-        OP_ADD
-        OP_ADD
+        OP_1
+        OP_1
     };
 
     let script = script! {
@@ -17,7 +17,7 @@ fn test_chunker_simple() {
 
     println!("{:?}", sub_script);
 
-    let mut chunker = Chunker::new(script, 2, 0);
+    let mut chunker = Chunker::new(script, 2, 1000);
     let chunk_borders = chunker.find_chunks();
 
     assert_eq!(chunk_borders, vec![2, 2, 2, 2]);
@@ -26,8 +26,8 @@ fn test_chunker_simple() {
 #[test]
 fn test_chunker_ifs_1() {
     let sub_script = script! {
-        OP_ADD
-        OP_ADD
+        OP_1
+        OP_1
     };
 
     let script = script! {
@@ -39,7 +39,7 @@ fn test_chunker_ifs_1() {
 
     println!("{:?}", sub_script);
 
-    let mut chunker = Chunker::new(script, 5, 4);
+    let mut chunker = Chunker::new(script, 5, 1000);
     let chunk_borders = chunker.find_chunks();
     println!("Chunker: {:?}", chunker);
 
@@ -49,11 +49,11 @@ fn test_chunker_ifs_1() {
 #[test]
 fn test_chunker_ifs_2() {
     let sub_script = script! {
-        OP_ADD
-        OP_ADD
-        OP_ADD
-        OP_ADD
-        OP_ADD
+        OP_1
+        OP_1
+        OP_1
+        OP_1
+        OP_1
     };
 
     let script = script! {
@@ -69,7 +69,7 @@ fn test_chunker_ifs_2() {
 
     println!("{:?}", sub_script);
 
-    let mut chunker = Chunker::new(script, 10, 5);
+    let mut chunker = Chunker::new(script, 10, 1000);
     let chunk_borders = chunker.find_chunks();
     //assert_eq!(
     //    chunker.chunks[0].clone().stats.unwrap(),
@@ -98,7 +98,7 @@ fn test_compile_to_chunks() {
         { sub_script.clone() }
         OP_ENDIF
     };
-    let (chunk_borders, chunks) = script.clone().compile_to_chunks(5, 4);
+    let (chunk_borders, chunks) = script.clone().compile_to_chunks(5, 1000);
     println!("Chunk borders: {:?}", chunk_borders);
     let compiled_total_script = script.compile();
     let mut compiled_chunk_script = vec![];
@@ -123,9 +123,32 @@ fn test_chunker_ignores_stack_hint_script() {
         { unsplittable_script.clone() }
     };
 
-    let mut chunker = Chunker::new(script, 4, 4);
+    let mut chunker = Chunker::new(script, 4, 1000);
     let chunk_borders = chunker.find_chunks();
     println!("Chunker: {:?}", chunker);
 
     assert_eq!(chunk_borders, vec![2, 4]);
+}
+
+#[test]
+fn test_chunker_stack_limit() {
+    let script = script! {
+        { script!{
+            OP_1
+            OP_1
+            OP_DROP
+            OP_1
+        }}
+        { script!{
+            OP_1
+            OP_ADD
+            OP_DROP
+        }}
+    };
+
+    let mut chunker = Chunker::new(script, 4, 1);
+    let chunk_borders = chunker.find_chunks();
+    println!("Chunker: {:?}", chunker);
+
+    assert_eq!(chunk_borders, vec![3, 4]);
 }

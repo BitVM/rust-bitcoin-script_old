@@ -18,6 +18,12 @@ pub struct StackStatus {
     pub altstack_changed: i32,
 }
 
+impl StackStatus {
+    pub fn total_stack(&self) -> i32 {
+        self.stack_changed + self.altstack_changed
+    }
+}
+
 #[derive(Debug, Clone)]
 enum IfStackEle {
     IfFlow(StackStatus),
@@ -33,7 +39,7 @@ pub struct StackAnalyzer {
     // if_stack should be empty after analyzing
     if_stack: Vec<IfStackEle>,
     // last constant? for handling op_roll and op_pick
-    last_constant: Option<i64>,
+    pub last_constant: Option<i64>,
 }
 
 impl Default for StackAnalyzer {
@@ -53,14 +59,43 @@ impl StackAnalyzer {
         }
     }
 
+    pub fn with(start_stack: usize, start_altstack: usize, last_constant: Option<i64>) -> Self {
+        StackAnalyzer {
+            debug_script: StructuredScript::new(""),
+            debug_position: 0,
+            stack_status: StackStatus {
+                deepest_stack_accessed: 0,
+                stack_changed: start_stack as i32,
+                deepest_altstack_accessed: 0,
+                altstack_changed: start_altstack as i32,
+            },
+            if_stack: vec![],
+            last_constant,
+        }
+    }
+
+    pub fn total_stack_change(&self) -> i32 {
+        self.stack_status.altstack_changed + self.stack_status.stack_changed
+    }
+
     pub fn reset(&mut self) {
         self.debug_script = StructuredScript::new("");
         self.debug_position = 0;
-        self.if_stack= vec![];
+        self.if_stack = vec![];
         self.stack_status = StackStatus::default();
     }
 
-    pub fn analyze_blocks(&mut self, scripts: &mut Vec<Box<StructuredScript>>) -> StackStatus {
+    pub fn analyze_blocks(&mut self, scripts: &Vec<Box<StructuredScript>>) {
+        for script in scripts {
+            self.debug_script = *script.clone();
+            self.debug_position = 0;
+            match script.stack_hint() {
+                Some(stack_hint) => self.stack_change(stack_hint),
+                None => self.merge_script(script),
+            };
+        }
+    }
+    pub fn analyze_blocks_status(&mut self, scripts: &Vec<Box<StructuredScript>>) -> StackStatus {
         for script in scripts {
             self.debug_script = *script.clone();
             self.debug_position = 0;
@@ -72,11 +107,23 @@ impl StackAnalyzer {
         self.get_status()
     }
 
-    pub fn analyze(&mut self, builder: &StructuredScript) -> StackStatus {
-        self.debug_script = builder.clone();
+    pub fn analyze_status(&mut self, script: &StructuredScript) -> StackStatus {
+        self.debug_script = script.clone();
         self.debug_position = 0;
-        self.merge_script(builder);
+        match script.stack_hint() {
+            Some(stack_hint) => self.stack_change(stack_hint),
+            None => self.merge_script(script),
+        };
         self.get_status()
+    }
+
+    pub fn analyze(&mut self, script: &StructuredScript) {
+        self.debug_script = script.clone();
+        self.debug_position = 0;
+        match script.stack_hint() {
+            Some(stack_hint) => self.stack_change(stack_hint),
+            None => self.merge_script(script),
+        };
     }
 
     pub fn merge_script(&mut self, builder: &StructuredScript) {
@@ -155,7 +202,11 @@ impl StackAnalyzer {
                 self.if_stack.push(IfStackEle::IfFlow(Default::default()));
             }
             OP_RESERVED => {
-                panic!("found DEBUG in {:?}\n entire builder: {:?}", self.debug_script.debug_info(self.debug_position), self.debug_script)
+                panic!(
+                    "found DEBUG in {:?}\n entire builder: {:?}",
+                    self.debug_script.debug_info(self.debug_position),
+                    self.debug_script
+                )
             }
             OP_ELSE => match self.if_stack.pop().unwrap() {
                 IfStackEle::IfFlow(i) => {
@@ -199,7 +250,10 @@ impl StackAnalyzer {
                     self.stack_change(Self::plain_stack_status(-((x + 1 + 1) as i32), 0));
                 }
                 None => {
-                    panic!("need to be handled manually for op_pick in {:?}", self.debug_script.debug_info(self.debug_position))
+                    panic!(
+                        "need to be handled manually for op_pick in {:?}",
+                        self.debug_script.debug_info(self.debug_position)
+                    )
                 }
             },
             OP_ROLL => match self.last_constant {
@@ -208,7 +262,10 @@ impl StackAnalyzer {
                     // for [x2, x1, x0, 2, OP_PICK]
                 }
                 None => {
-                    panic!("need to be handled manually for op_roll in {:?}", self.debug_script.debug_info(self.debug_position))
+                    panic!(
+                        "need to be handled manually for op_roll in {:?}",
+                        self.debug_script.debug_info(self.debug_position)
+                    )
                 }
             },
             _ => {

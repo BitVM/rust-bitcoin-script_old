@@ -11,7 +11,7 @@ fn test_plain() {
         OP_1
     );
     let mut analyzer = StackAnalyzer::new();
-    let status = analyzer.analyze(&script);
+    let status = analyzer.analyze_status(&script);
     assert_eq!(status.deepest_stack_accessed, -3);
     assert_eq!(status.stack_changed, -1);
 }
@@ -27,7 +27,7 @@ fn test_two_scripts() {
         }}
     };
     let mut analyzer = StackAnalyzer::new();
-    let status = analyzer.analyze(&script);
+    let status = analyzer.analyze_status(&script);
     assert_eq!(status.deepest_stack_accessed, -3);
     assert_eq!(status.stack_changed, -2);
 }
