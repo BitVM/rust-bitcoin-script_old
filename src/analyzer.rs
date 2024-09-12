@@ -194,6 +194,15 @@ impl StackAnalyzer {
         }
     }
 
+    pub fn plain_altstack_status(x: i32, y: i32) -> StackStatus {
+        StackStatus {
+            deepest_stack_accessed: 0,
+            stack_changed: 0,
+            deepest_altstack_accessed: x,
+            altstack_changed: y,
+        }
+    }
+
     pub fn handle_opcode(&mut self, opcode: Opcode) {
         // handle if/else flow
         match opcode {
@@ -219,29 +228,27 @@ impl StackAnalyzer {
             },
             OP_ENDIF => match self.if_stack.pop().unwrap() {
                 IfStackEle::IfFlow(stack_status) => {
-                    // TODO: Note that the stack_changed value is off when we have ifs that change
-                    // the stack. Need to handle this.
-                    //assert_eq!(
-                    //    stack_status.stack_changed, 0,
-                    //    "only_if_flow shouldn't change stack status {:?}\n\tat pos {:?}\n\tin {:?}",
-                    //    stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position)
-                    //);
-                    //assert_eq!(
-                    //    stack_status.altstack_changed, 0,
-                    //    "only_if_flow shouldn't change altstack status {:?}\n\tat pos {:?}\n\tin {:?}",
-                    //    stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position)
-                    //);
+                    assert_eq!(
+                        stack_status.stack_changed, 0,
+                        "only_if_flow shouldn't change stack status {:?}\n\tat pos {:?}\n\tin {:?}",
+                        stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position)
+                    );
+                    assert_eq!(
+                        stack_status.altstack_changed, 0,
+                        "only_if_flow shouldn't change altstack status {:?}\n\tat pos {:?}\n\tin {:?}",
+                        stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position)
+                    );
                     self.stack_change(stack_status);
                 }
                 IfStackEle::ElseFlow((stack_status1, stack_status2)) => {
-                    //assert_eq!(
-                    //    stack_status1.stack_changed, stack_status2.stack_changed,
-                    //    "if_flow and else_flow should change stack in the same way"
-                    //);
-                    //assert_eq!(
-                    //    stack_status1.altstack_changed, stack_status2.altstack_changed,
-                    //    "if_flow and else_flow should change alt stack in the same way"
-                    //);
+                    assert_eq!(
+                        stack_status1.stack_changed, stack_status2.stack_changed,
+                        "if_flow and else_flow should change stack in the same way"
+                    );
+                    assert_eq!(
+                        stack_status1.altstack_changed, stack_status2.altstack_changed,
+                        "if_flow and else_flow should change alt stack in the same way"
+                    );
                     self.stack_change(Self::min_status(stack_status1, stack_status2));
                 }
             },
@@ -304,8 +311,6 @@ impl StackAnalyzer {
                 status = stack_status.borrow_mut();
             }
         }
-        //println!("Script1: {:?}", status);
-        //println!("Script2: {:?}", stack_status);
         let i = status.deepest_stack_accessed.borrow_mut();
         let j = status.stack_changed.borrow_mut();
         let x = status.deepest_altstack_accessed.borrow_mut();
@@ -329,7 +334,6 @@ impl StackAnalyzer {
             stack_status.deepest_altstack_accessed + elements_on_intermediate_altstack,
         );
         *y += stack_status.altstack_changed;
-        //println!("Updated: {:?}", status);
     }
 
     /// the first return is deepest access to current stack

@@ -55,7 +55,6 @@ impl UndoInfo {
         self.num_unclosed_ifs = 0;
         self.last_constant = self.analyzer.last_constant;
         self.valid_stack_status = self.analyzer.get_status();
-        self.analyzer.reset();
         std::mem::take(&mut self.call_stack)
     }
 
@@ -72,7 +71,7 @@ impl UndoInfo {
             .get_status()
             .total_stack()
             .try_into()
-            .expect("Consuming more elementes than there are on the stack");
+            .expect("Consuming more elementes than there are on the stack 1");
         total_stack_size <= stack_limit
     }
 
@@ -100,7 +99,7 @@ impl UndoInfo {
                 .get_status()
                 .total_stack()
                 .try_into()
-                .expect("Consuming more elementes than there are on the stack");
+                .expect("Consuming more elementes than there are on the stack 2");
             if total_stack_size <= stack_limit {
                 assert!(self.call_stack.is_empty());
                 return true;
@@ -189,7 +188,7 @@ impl Chunker {
             // TODO: Optimize here by skipping over scripts that wont change stack size enough?
             if builder.has_stack_hint()
                 || (!builder.contains_flow_op() && undo_info.num_unclosed_ifs != 0)
-                || builder.is_script_buf() && builder.len() == 1
+                || builder.is_single_instruction()
             {
                 undo_info.remove(&builder);
                 removed_len += builder.len();
@@ -321,12 +320,12 @@ impl Chunker {
             stack_output_size: status
                 .stack_changed
                 .try_into()
-                .expect("Consuming more stack elements than there are on the stack"),
+                .expect("Consuming more stack elements than there are on the stack 3"),
             altstack_input_size: input_altstack_size,
             altstack_output_size: status
                 .altstack_changed
                 .try_into()
-                .expect("Consuming more stack elements than there are on the stack"),
+                .expect(&format!("Consuming more stack elements than there are on the altstack: {:?}", status)),
         };
 
         Chunk::new(chunk_scripts, chunk_len, chunk_stats, last_constant)

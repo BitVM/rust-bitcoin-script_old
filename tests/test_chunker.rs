@@ -1,4 +1,4 @@
-use bitcoin::ScriptBuf;
+use bitcoin::{opcodes::all::{OP_FROMALTSTACK, OP_TOALTSTACK}, ScriptBuf};
 use bitcoin_script::{chunker::ChunkStats, script, Chunker};
 
 #[test]
@@ -151,4 +151,23 @@ fn test_chunker_stack_limit() {
     println!("Chunker: {:?}", chunker);
 
     assert_eq!(chunk_borders, vec![3, 4]);
+}
+
+#[test]
+fn test_chunker_analysis() {
+    let script = script! {
+            OP_1
+            OP_1
+            OP_ADD
+            OP_1
+            OP_ROLL
+            OP_TOALTSTACK
+            OP_FROMALTSTACK
+    };
+
+    let mut chunker = Chunker::new(script, 400, 1000);
+    let chunk_borders = chunker.find_chunks();
+    println!("Chunker: {:?}", chunker);
+
+    assert_eq!(chunk_borders, vec![7]);
 }

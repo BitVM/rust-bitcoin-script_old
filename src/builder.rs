@@ -83,6 +83,17 @@ impl StructuredScript {
         self.blocks.len() == 1 && matches!(self.blocks[0], Block::Script(_))
     }
 
+    pub fn is_single_instruction(&self) -> bool {
+        if self.is_script_buf() {
+            match &self.blocks[0] {
+                Block::Call(_) => unreachable!(),
+                Block::Script(block_script) => block_script.instructions().collect::<Vec<_>>().len() == 1,
+            }
+        } else {
+            false
+        }
+    }
+
     pub fn has_stack_hint(&self) -> bool {
         self.stack_hint != None
     }
@@ -382,7 +393,24 @@ impl StructuredScript {
     }
 
     pub fn add_stack_hint(mut self, access: i32, changed: i32) -> Self {
-        self.stack_hint = Some(StackAnalyzer::plain_stack_status(access, changed));
+        match &mut self.stack_hint {
+            Some(hint) => {
+                hint.stack_changed = changed;
+                hint.deepest_stack_accessed = access;
+            },
+            None => self.stack_hint = Some(StackAnalyzer::plain_stack_status(access, changed))
+        }
+        self
+    }
+    
+    pub fn add_altstack_hint(mut self, access: i32, changed: i32) -> Self {
+        match &mut self.stack_hint {
+            Some(hint) => {
+                hint.altstack_changed = changed;
+                hint.deepest_altstack_accessed = access;
+            },
+            None => self.stack_hint = Some(StackAnalyzer::plain_stack_status(access, changed))
+        }
         self
     }
 
