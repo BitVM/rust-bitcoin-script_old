@@ -231,23 +231,23 @@ impl StackAnalyzer {
                     assert_eq!(
                         stack_status.stack_changed, 0,
                         "only_if_flow shouldn't change stack status {:?}\n\tat pos {:?}\n\tin {:?}",
-                        stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position)
+                        stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position + 1)
                     );
                     assert_eq!(
                         stack_status.altstack_changed, 0,
                         "only_if_flow shouldn't change altstack status {:?}\n\tat pos {:?}\n\tin {:?}",
-                        stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position)
+                        stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position + 1)
                     );
                     self.stack_change(stack_status);
                 }
                 IfStackEle::ElseFlow((stack_status1, stack_status2)) => {
                     assert_eq!(
                         stack_status1.stack_changed, stack_status2.stack_changed,
-                        "if_flow and else_flow should change stack in the same way"
+                        "if_flow and else_flow should change stack in the same way in {:?}", self.debug_script.debug_info(self.debug_position + 1)
                     );
                     assert_eq!(
                         stack_status1.altstack_changed, stack_status2.altstack_changed,
-                        "if_flow and else_flow should change alt stack in the same way"
+                        "if_flow and else_flow should change altstack in the same way in {:?}", self.debug_script.debug_info(self.debug_position + 1)
                     );
                     self.stack_change(Self::min_status(stack_status1, stack_status2));
                 }
