@@ -22,6 +22,19 @@ impl StackStatus {
     pub fn total_stack(&self) -> i32 {
         self.stack_changed + self.altstack_changed
     }
+
+    pub fn is_valid_final_state_without_inputs(&self) -> bool {
+        self.stack_changed == 1
+            && self.altstack_changed == 0
+            && self.deepest_altstack_accessed == 0
+            && self.deepest_stack_accessed == 0
+    }
+    
+    pub fn is_valid_final_state_with_inputs(&self) -> bool {
+        self.stack_changed == 1
+            && self.altstack_changed == 0
+            && self.deepest_altstack_accessed == 0
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -235,32 +248,38 @@ impl StackAnalyzer {
                     panic!("shouldn't happend")
                 }
             },
-            OP_ENDIF => match self.if_stack.pop().unwrap() {
-                IfStackEle::IfFlow(stack_status) => {
-                    assert_eq!(
+            OP_ENDIF => {
+                match self.if_stack.pop().unwrap() {
+                    IfStackEle::IfFlow(stack_status) => {
+                        assert_eq!(
                         stack_status.stack_changed, 0,
                         "only_if_flow shouldn't change stack status {:?}\n\tat pos {:?}\n\tin {:?}",
                         stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position + 1)
                     );
-                    assert_eq!(
+                        assert_eq!(
                         stack_status.altstack_changed, 0,
                         "only_if_flow shouldn't change altstack status {:?}\n\tat pos {:?}\n\tin {:?}",
                         stack_status, self.debug_position, self.debug_script.debug_info(self.debug_position + 1)
                     );
-                    self.stack_change(stack_status);
+                        self.stack_change(stack_status);
+                    }
+                    IfStackEle::ElseFlow((stack_status1, stack_status2)) => {
+                        assert_eq!(
+                            stack_status1.stack_changed,
+                            stack_status2.stack_changed,
+                            "if_flow and else_flow should change stack in the same way in {:?}",
+                            self.debug_script.debug_info(self.debug_position + 1)
+                        );
+                        assert_eq!(
+                            stack_status1.altstack_changed,
+                            stack_status2.altstack_changed,
+                            "if_flow and else_flow should change altstack in the same way in {:?}",
+                            self.debug_script.debug_info(self.debug_position + 1)
+                        );
+                        self.stack_change(Self::min_status(stack_status1, stack_status2));
+                    }
                 }
-                IfStackEle::ElseFlow((stack_status1, stack_status2)) => {
-                    assert_eq!(
-                        stack_status1.stack_changed, stack_status2.stack_changed,
-                        "if_flow and else_flow should change stack in the same way in {:?}", self.debug_script.debug_info(self.debug_position + 1)
-                    );
-                    assert_eq!(
-                        stack_status1.altstack_changed, stack_status2.altstack_changed,
-                        "if_flow and else_flow should change altstack in the same way in {:?}", self.debug_script.debug_info(self.debug_position + 1)
-                    );
-                    self.stack_change(Self::min_status(stack_status1, stack_status2));
-                }
-            },
+            }
             OP_PICK => match self.last_constant {
                 Some(x) => {
                     self.stack_change(Self::plain_stack_status(-((x + 1 + 1) as i32), 0));
