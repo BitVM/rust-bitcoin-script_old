@@ -90,7 +90,10 @@ impl StackAnalyzer {
             self.debug_script = *script.clone();
             self.debug_position = 0;
             match script.stack_hint() {
-                Some(stack_hint) => self.stack_change(stack_hint),
+                Some(stack_hint) => {
+                    self.debug_position += script.len();
+                    self.stack_change(stack_hint)
+                }
                 None => self.merge_script(script),
             };
         }
@@ -100,7 +103,10 @@ impl StackAnalyzer {
             self.debug_script = *script.clone();
             self.debug_position = 0;
             match script.stack_hint() {
-                Some(stack_hint) => self.stack_change(stack_hint),
+                Some(stack_hint) => {
+                    self.debug_position += script.len();
+                    self.stack_change(stack_hint)
+                }
                 None => self.merge_script(script),
             };
         }
@@ -135,7 +141,10 @@ impl StackAnalyzer {
                         .get(id)
                         .expect("Missing entry for a called script");
                     match called_script.stack_hint() {
-                        Some(stack_hint) => self.stack_change(stack_hint),
+                        Some(stack_hint) => {
+                            self.debug_position += called_script.len();
+                            self.stack_change(stack_hint)
+                        }
                         None => self.merge_script(called_script),
                     };
                 }
